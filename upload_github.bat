@@ -58,6 +58,18 @@ if /i not "%repo_exists%"=="y" (
     exit /b 0
 )
 
+:: Kiểm tra nội dung trên GitHub
+echo.
+echo Kiem tra noi dung tren GitHub...
+echo Hay vao https://github.com/%github_user%/%repo_name% de xem noi dung
+set /p has_content="GitHub co noi dung (README, file khac)? (y/n): "
+if /i "%has_content%"=="y" (
+    echo.
+    echo LUU Y: GitHub da co noi dung, se co xung dot khi push len main!
+    echo Hay chon cach xu ly phu hop.
+    echo.
+)
+
 :: Thêm file và commit
 echo [5/5] Them file va commit...
 git add .
@@ -74,9 +86,29 @@ echo.
 set /p switch_main="Ban co muon chuyen sang branch main? (y/n): "
 if /i "%switch_main%"=="y" (
     echo Chuyen sang branch main...
-    git checkout -b main
-    echo Da chuyen sang branch main!
     echo.
+    echo LUU Y: Neu GitHub da co branch main, ban can chon cach xu ly:
+    echo 1. Force push (ghi de branch main tren GitHub)
+    echo 2. Pull va merge (giu lai noi dung tren GitHub)
+    echo 3. Giu nguyen branch master
+    echo.
+    set /p main_action="Chon cach xu ly (1=Force push, 2=Pull merge, 3=Giu master): "
+    
+    if "%main_action%"=="1" (
+        echo Force push len branch main...
+        git checkout -b main
+        echo Da chuyen sang branch main!
+        echo.
+    ) else if "%main_action%"=="2" (
+        echo Pull va merge voi branch main tren GitHub...
+        git checkout -b main
+        git pull origin main --allow-unrelated-histories
+        echo Da merge voi branch main tren GitHub!
+        echo.
+    ) else (
+        echo Giu nguyen branch master.
+        echo.
+    )
 )
 
 :: Push lên GitHub
@@ -97,8 +129,12 @@ if errorlevel 1 (
     echo Thu push len branch main...
     git push origin main
     if errorlevel 1 (
-        echo Thu push len branch master...
-        git push origin master
+        echo Push bi tu choi. Thu force push...
+        git push origin main --force
+        if errorlevel 1 (
+            echo Thu push len branch master...
+            git push origin master
+        )
     )
 )
 
