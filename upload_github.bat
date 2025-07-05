@@ -65,6 +65,20 @@ git commit -m "Initial commit"
 echo Commit thanh cong!
 echo.
 
+:: Kiểm tra branch hiện tại
+echo Kiem tra branch hien tai...
+git branch
+echo.
+
+:: Hỏi người dùng có muốn chuyển sang main không
+set /p switch_main="Ban co muon chuyen sang branch main? (y/n): "
+if /i "%switch_main%"=="y" (
+    echo Chuyen sang branch main...
+    git checkout -b main
+    echo Da chuyen sang branch main!
+    echo.
+)
+
 :: Push lên GitHub
 echo Push len GitHub...
 echo.
@@ -75,10 +89,17 @@ echo.
 echo Luu y: Token se khong hien thi khi nhap, do la binh thuong!
 echo.
 echo Dang push len GitHub...
-git push origin main
+echo.
+
+:: Thử push lên branch hiện tại trước
+git push origin HEAD
 if errorlevel 1 (
-    echo Thu push len branch master...
-    git push origin master
+    echo Thu push len branch main...
+    git push origin main
+    if errorlevel 1 (
+        echo Thu push len branch master...
+        git push origin master
+    )
 )
 
 if errorlevel 1 (
