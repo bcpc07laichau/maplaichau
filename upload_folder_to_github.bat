@@ -4,6 +4,31 @@ echo    UPLOAD FOLDER TO GITHUB
 echo ========================================
 echo.
 
+:: Hiển thị thư mục hiện tại
+echo Thu muc hien tai: %CD%
+echo.
+
+:: Kiểm tra xem có file batch trong thư mục hiện tại không
+if not exist "%~nx0" (
+    echo ERROR: File batch khong o trong thu muc hien tai!
+    echo Hay chay file batch trong thu muc chua file can upload.
+    pause
+    exit /b 1
+)
+
+:: Kiểm tra xem có file nào trong thư mục không (trừ file batch)
+dir /b /a-d | findstr /v "%~nx0" >nul
+if errorlevel 1 (
+    echo ERROR: Thu muc trong! Khong co file nao de upload.
+    echo Hay them file vao thu muc truoc khi chay script.
+    pause
+    exit /b 1
+)
+
+echo Cac file trong thu muc:
+dir /b /a-d
+echo.
+
 :: Kiểm tra xem có phải là Git repository không
 if not exist ".git" (
     echo [1/5] Khoi tao Git repository...
@@ -75,23 +100,97 @@ echo.
 
 :: Thiết lập remote origin
 echo [3/5] Thiet lap remote origin...
+echo Kiem tra remote origin hien tai:
+git remote -v
+echo.
+
+:: Kiểm tra xem có remote origin không
 git remote -v | findstr origin >nul
 if errorlevel 1 (
     echo Chua co remote origin, hay nhap thong tin:
     set /p github_user="Nhap GitHub username: "
     set /p repo_name="Nhap ten repository: "
     
+    :: Lưu thông tin GitHub vào biến môi trường
+    set GITHUB_USER=%github_user%
+    set REPO_NAME=%repo_name%
+    
     if not "%github_user%"=="" if not "%repo_name%"=="" (
         echo Dang them remote origin: https://github.com/%github_user%/%repo_name%.git
         git remote add origin https://github.com/%github_user%/%repo_name%.git
-        echo Remote origin da duoc thiet lap!
+        
+        :: Kiểm tra remote origin đã được thiết lập
+        echo Kiem tra remote origin sau khi them:
+        git remote -v
+        echo.
+        
+        echo Kiem tra ket noi den GitHub...
+        echo Repository URL: https://github.com/%github_user%/%repo_name%
+        echo.
+        echo LUU Y: Repository phai duoc tao tren GitHub truoc!
+        echo Hay vao https://github.com/%github_user%/%repo_name% de kiem tra
+        echo.
+        set /p repo_exists="Repository da duoc tao tren GitHub? (y/n): "
+        if /i not "%repo_exists%"=="y" (
+            echo.
+            echo Hay tao repository tren GitHub truoc:
+            echo 1. Vao https://github.com/new
+            echo 2. Dat ten repository: %repo_name%
+            echo 3. Chon Public hoac Private
+            echo 4. KHONG chon "Initialize with README"
+            echo 5. Click "Create repository"
+            echo.
+            pause
+            exit /b 0
+        )
+        
+        :: Kiểm tra lại remote origin sau khi xác nhận
+        echo Kiem tra lai remote origin:
+        git remote -v
+        echo.
+        
+        :: Test kết nối ngay lập tức
+        echo Test ket noi den GitHub...
+        git ls-remote origin >nul 2>&1
+        if errorlevel 1 (
+            echo ERROR: Khong the ket noi den GitHub!
+            echo Hay kiem tra repository URL: https://github.com/%github_user%/%repo_name%
+            pause
+            exit /b 1
+        )
+        echo Ket noi den GitHub thanh cong!
+        echo Remote origin da duoc thiet lap thanh cong!
+        echo.
     ) else (
         echo ERROR: Username hoac repository name khong duoc de trong!
         pause
         exit /b 1
     )
 ) else (
-    echo Remote origin da co san.
+    set /p check_remote="Remote origin da co san. Ban co muon thay doi? (y/n): "
+    if /i "%check_remote%"=="y" (
+    echo.
+    set /p github_user="Nhap GitHub username: "
+    set /p repo_name="Nhap ten repository: "
+    
+    if not "%github_user%"=="" if not "%repo_name%"=="" (
+        echo Dang them remote origin: https://github.com/%github_user%/%repo_name%.git
+        git remote remove origin 2>nul
+        git remote add origin https://github.com/%github_user%/%repo_name%.git
+        echo Remote origin da duoc cap nhat!
+        
+        echo.
+        echo Kiem tra ket noi den GitHub...
+        echo Repository URL: https://github.com/%github_user%/%repo_name%
+        echo Hay dam bao repository da duoc tao tren GitHub!
+        echo.
+    ) else (
+        echo ERROR: Username hoac repository name khong duoc de trong!
+        pause
+        exit /b 1
+    )
+) else (
+    echo Su dung remote origin hien tai.
 )
 echo.
 
@@ -188,19 +287,93 @@ if errorlevel 1 (
 echo Commit thanh cong!
 echo.
 
+:: Kiểm tra remote origin trước khi push
+echo [5/5] Kiem tra remote origin...
+echo.
+echo Kiem tra remote origin hien tai:
+git remote -v
+echo.
+
+:: Kiểm tra xem có remote origin không
+git remote -v | findstr origin >nul
+if errorlevel 1 (
+    echo ERROR: Khong co remote origin!
+    echo.
+    echo Nguyen nhan co the la:
+    echo 1. Script bi dung giua chung
+    echo 2. Remote origin chua duoc thiet lap dung
+    echo.
+    echo Hay chay lai script tu dau.
+    pause
+    exit /b 1
+)
+
+echo Remote origin da duoc thiet lap dung!
+echo.
+
+:: Kiểm tra xác thực GitHub
+echo Kiem tra xac thuc GitHub...
+echo.
+echo LUU Y: Ban can xac thuc voi GitHub de push code.
+echo Co 2 cach xac thuc:
+echo 1. Personal Access Token (khuyen dung)
+echo 2. SSH key
+echo.
+echo Neu chua co Personal Access Token:
+echo 1. Vao GitHub.com -^> Settings -^> Developer settings -^> Personal access tokens
+echo 2. Generate new token (classic)
+echo 3. Chon quyen: repo, workflow
+echo 4. Copy token va su dung khi duoc yeu cau
+echo.
+set /p ready="Ban da san sang push len GitHub? (y/n): "
+if /i not "%ready%"=="y" (
+    echo Upload bi huy. Hay chuan bi xac thuc truoc khi chay lai.
+    pause
+    exit /b 0
+)
+
+:: Test kết nối đến GitHub
+echo Test ket noi den GitHub...
+git ls-remote origin >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Khong the ket noi den GitHub!
+    echo.
+    echo Nguyen nhan co the la:
+    echo 1. Repository chua duoc tao tren GitHub
+    echo 2. Sai username hoac repository name
+    echo 3. Khong co quyen truy cap
+    echo.
+    if defined GITHUB_USER if defined REPO_NAME (
+        echo Hay kiem tra: https://github.com/%GITHUB_USER%/%REPO_NAME%
+    ) else (
+        echo Hay kiem tra repository URL
+    )
+    pause
+    exit /b 1
+)
+echo Ket noi den GitHub thanh cong!
+echo.
+
 :: Push lên GitHub
-echo [5/5] Push len GitHub...
+echo Push len GitHub...
 git push origin main
 if errorlevel 1 (
     echo Thu push len branch master...
     git push origin master
     if errorlevel 1 (
         echo ERROR: Khong the push len GitHub!
-        echo Hay kiem tra:
+        echo.
+        echo Nguyen nhan co the la:
         echo 1. Ket noi internet
-        echo 2. Repository da duoc tao tren GitHub
+        echo 2. Repository chua duoc tao tren GitHub
         echo 3. Quyen truy cap repository
-        echo 4. Xac thuc GitHub (Personal Access Token hoac SSH key)
+        echo 4. Chua xac thuc GitHub (Personal Access Token hoac SSH key)
+        echo 5. Sai username hoac repository name
+        echo.
+        echo Hay kiem tra:
+        echo - Repository URL: https://github.com/[username]/[repository]
+        echo - Personal Access Token hoac SSH key
+        echo - Quyen truy cap repository
         pause
         exit /b 1
     )
