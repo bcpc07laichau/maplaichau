@@ -92,7 +92,7 @@ if "%auth_method%"=="1" (
     echo.
     echo Luu y: Token se khong hien thi khi nhap, do la binh thuong!
     echo.
-    set /p ready="Da hieu cach su dung token? (y/n): "
+    set /p ready="Da san sang push? (y/n): "
     if /i not "%ready%"=="y" (
         echo Upload bi huy.
         pause
@@ -104,9 +104,9 @@ if "%auth_method%"=="1" (
     echo.
     git push origin main
     if errorlevel 1 (
-            echo Thu push len branch master...
-    git push origin master
-)
+        echo Thu push len branch master...
+        git push origin master
+    )
 ) else if "%auth_method%"=="3" (
     echo.
     echo LUU TOKEN VAO GIT:
@@ -115,7 +115,7 @@ if "%auth_method%"=="1" (
     echo 2. Khi Git yeu cau password, nhap: [PASTE TOKEN VAO DAY]
     echo 3. Token se duoc luu va khong can nhap lai lan sau
     echo.
-    set /p ready="Da hieu cach luu token? (y/n): "
+    set /p ready="Da san sang push? (y/n): "
     if /i not "%ready%"=="y" (
         echo Upload bi huy.
         pause
@@ -123,6 +123,8 @@ if "%auth_method%"=="1" (
     )
     echo.
     echo Push len GitHub va luu token...
+    echo Khi duoc yeu cau, hay nhap token vao o password!
+    echo.
     git push origin main
     if errorlevel 1 (
         echo Thu push len branch master...
